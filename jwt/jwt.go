@@ -26,6 +26,7 @@ import (
 	"context"
 	"errors"
 	"fmt"
+	"log"
 
 	"gopkg.in/square/go-jose.v2"
 	"gopkg.in/square/go-jose.v2/jwt"
@@ -49,11 +50,13 @@ func (m *Module) Sign(ctx context.Context, key *jose.JSONWebKey, payload, header
 
 	sig, err := jose.NewSigner(jose.SigningKey{Algorithm: jose.SignatureAlgorithm(key.Algorithm), Key: key}, opts)
 	if err != nil {
+		log.Println("error creating signer: %s", err.Error())
 		return "", err
 	}
 
 	str, err := jwt.Signed(sig).Claims(payload).CompactSerialize()
 	if err != nil {
+		log.Println("error sign: %s", err.Error())
 		return "", err
 	}
 

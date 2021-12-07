@@ -27,6 +27,7 @@ import (
 	"crypto/ed25519"
 	"crypto/rand"
 	"crypto/sha256"
+	"crypto/x509"
 	"encoding/base64"
 	"encoding/json"
 	"errors"
@@ -108,16 +109,22 @@ func (m *Module) Generate(ctx context.Context, algorithm string, seedIn interfac
 func (m *Module) Adopt(ctx context.Context, algorithm string, keyIn interface{}, isPublic bool) (*jose.JSONWebKey, error) {
 	alg := strings.ToUpper(algorithm)
 
-	if alg != string(jose.ED25519) {
+	switch alg {
+	case string(jose.ED25519):
+		key, err := bytes(keyIn)
+		if err != nil {
+			return nil, err
+		}
+		return ed25519Adopt(key, isPublic), nil
+	case string(jose.RSA1_5):
+		key, err := bytes(keyIn)
+		if err != nil {
+			return nil, err
+		}
+		return rsa15Adopt(key, isPublic)
+	default:
 		return nil, fmt.Errorf("%w: %s", ErrUnsupportedAlgorithm, algorithm)
 	}
-
-	key, err := bytes(keyIn)
-	if err != nil {
-		return nil, err
-	}
-
-	return ed25519Adopt(key, isPublic), nil
 }
 
 func ed25519Adopt(in []byte, isPublic bool) *jose.JSONWebKey {
@@ -143,4 +150,38 @@ func ed25519Adopt(in []byte, isPublic bool) *jose.JSONWebKey {
 	k.KeyID = base64.RawURLEncoding.EncodeToString(kid[:])
 
 	return k
+}
+
+func rsa15Adopt(in []byte, isPublic bool) (*jose.JSONWebKey, error) {
+	k := &jose.JSONWebKey{}
+	k.Algorithm = string(jose.RS256)
+	k.Use = "sig"
+
+	var x string
+	if isPublic {
+		publicKey := ed25519.PublicKey(in)
+		k.Key = publicKey
+		x = base64.RawURLEncoding.EncodeToString(publicKey)
+	} else {
+		privateKey, err := x509.ParsePKCS1PrivateKey(in)
+		if err != nil {
+			return nil, err
+		}
+		k.Key = privateKey
+		x = "TODO" //base64.RawURLEncoding.EncodeToString(privateKey.)
+	}
+
+	//{
+	//  "use": "sig",
+	//  "kid": "1",
+	//  "kty": "RSA",
+	//  "n": "",
+	//  "e": "AQAB"
+	//}
+	// workaround of k.Thumbprint() bug
+	//TODO fill for RSA
+	kid := sha256.Sum256([]byte(fmt.Sprintf(`{"kty":"RSA"}`, x)))
+
+	k.KeyID = base64.RawURLEncoding.EncodeToString(kid[:])
+	return k, nil
 }
