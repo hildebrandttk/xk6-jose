@@ -23,7 +23,6 @@
 package jwk
 
 import (
-	"context"
 	"crypto/ed25519"
 	"crypto/rand"
 	"crypto/sha256"
@@ -42,12 +41,12 @@ import (
 type Module struct{}
 
 func New() *Module {
-	return &Module{}
+    return &Module{}
 }
 
 var ErrUnsupportedAlgorithm = errors.New("unsupported algorithm")
 
-func (m *Module) Parse(ctx context.Context, source string) (*jose.JSONWebKey, error) {
+func (m *Module) Parse(source string) (*jose.JSONWebKey, error) {
 	key := &jose.JSONWebKey{}
 
 	if err := key.UnmarshalJSON([]byte(source)); err != nil {
@@ -57,7 +56,7 @@ func (m *Module) Parse(ctx context.Context, source string) (*jose.JSONWebKey, er
 	return key, nil
 }
 
-func (m *Module) ParseKeySet(ctx context.Context, source string) ([]jose.JSONWebKey, error) {
+func (m *Module) ParseKeySet(source string) ([]jose.JSONWebKey, error) {
 	keyset := &jose.JSONWebKeySet{}
 
 	if err := json.Unmarshal([]byte(source), &keyset); err != nil {
@@ -80,7 +79,7 @@ func bytes(in interface{}) ([]byte, error) {
 	return val, nil
 }
 
-func (m *Module) Generate(ctx context.Context, algorithm string, seedIn interface{}) (*jose.JSONWebKey, error) {
+func (m *Module) Generate(algorithm string, seedIn interface{}) (*jose.JSONWebKey, error) {
 	alg := strings.ToUpper(algorithm)
 
 	if alg != string(jose.ED25519) {
@@ -106,8 +105,8 @@ func (m *Module) Generate(ctx context.Context, algorithm string, seedIn interfac
 	return ed25519Adopt(priv, false), nil
 }
 
-func (m *Module) Adopt(ctx context.Context, algorithm string, keyIn interface{}, isPublic bool) (*jose.JSONWebKey, error) {
-	alg := strings.ToUpper(algorithm)
+func (m *Module) Adopt(algorithm string, keyIn interface{}, isPublic bool) (*jose.JSONWebKey, error) {
+    alg := strings.ToUpper(algorithm)
 
 	switch alg {
 	case string(jose.ED25519):
